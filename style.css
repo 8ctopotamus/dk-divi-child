@@ -1,0 +1,140 @@
+/* 
+ Theme Name:     Divi Child
+ Author:         Tim McCormick
+ Author URI:     http://website.com/
+ Template:       Divi
+ Version:        v 0.1
+ Description:   A Child Theme built using the elegantmarketplace.com Child theme maker
+Developed by Andrew Palmer for Elegant Marketplace www.elegantmarketplace.com Free to use and duplicate as many times as you like
+ Wordpress Version: 4.9.6
+*/ 
+
+/* Background Design*/
+body {
+    background-color: #e0e0e0;
+    background: #e0e0e0 url(https://dkdevelop.wpengine.com/wp-content/uploads/2020/05/page1-bg.gif) repeat-x center 130px!important;
+}
+
+.et_boxed_layout #page-container {
+	border-radius: 20px 20px 0px 0px;
+	box-shadow: none;
+}
+
+.et_pb_fullwidth_menu--without-logo .et_pb_menu__menu>nav>ul {
+    padding: 18px 0 0!important;
+}
+
+.headerPhone {
+    font: 300 1.1em/1em Arial, sans-serif;
+    color: #7d7d7d;
+    text-align: left;
+    text-transform: uppercase;
+    text-decoration: none;
+    padding: .5em 0px 0px 0px;
+    cursor: default;
+    display: inline-block;
+}
+
+.et-menu .menu-item-has-children>a:first-child:after {
+    display: none;
+}
+
+
+
+/* Header */
+.et-menu .menu-item-has-children>a:first-child {
+    padding-right: 0px;
+}
+
+.et_pb_fullwidth_menu--without-logo .et_pb_menu__menu>nav>ul>li>a {
+	padding-bottom: 19px;
+}
+
+.et_pb_fullwidth_menu .et-menu-nav>ul ul, .et_pb_menu .et-menu-nav>ul ul {
+    padding: 3px 0;
+    text-align: left;
+}
+
+.nav li li {
+    padding: 0px 0px;
+    margin: 0;
+	line-height: 18px;
+}
+
+
+
+/* Send Button */
+input#gform_submit_button_1 {
+    background: #829317;
+    color: #FFF;
+    font: 300 .9em/1em Arial, sans-serif;
+    border-radius: 0px;
+    text-transform: uppercase;
+    padding: .6em .5em .6em .5em;
+    text-decoration: none;
+}
+
+
+
+/* Main */
+.entry-content ul {
+    list-style-image: url(https://www.dkattorneys.com/wp-content/uploads/2018/02/bullet.png);
+}
+
+ul {
+list-style-image: url(https://www.dkattorneys.com/wp-content/uploads/2018/02/bullet.png);
+}
+
+.dk-random-attorney-profile h2 {
+  color: #829317;
+}
+
+
+
+/* Slick.js Slider*/
+
+.slick-prev:before, .slick-next:before{
+    color:red;
+}
+.et_pb_module.slick-slide {
+	margin-bottom:0px !important;
+}
+.slick-slider .slick-arrow {
+    display:none !important;
+}
+.slick-arrow:hover {
+     display: block !important;
+}
+
+
+
+/* Attorney Tabs */
+.tab {
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+}
+.tab button {
+    background-color: inherit;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 0.3s;
+}
+.tab button:hover {
+    background-color: #ddd;
+}
+.tab button.active {
+    background-color: #ccc;
+}
+.tabcontent {
+    display: none;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-top: none;
+} 
+.dk-tabs section:first-of-type {
+    display: block;
+}
