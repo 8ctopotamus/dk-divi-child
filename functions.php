@@ -44,7 +44,7 @@ function render_attorney_tabs() {
             } else {
                 $tabContentHTML .= '
                     <section id="' . $label . '" class="tabcontent">
-                        <h3>' . $label . '</h3>
+                        <h2>' . $label . '</h2>
                         '.$field['value'].'
                     </section>
                 ';
@@ -61,7 +61,7 @@ function create_notables_layout($section) {
         $html .= '<h3>' . $section['section_heading'] . '</h3>';
     }
     if ($section['acf_fc_layout'] === 'representation_item') {
-        $html .= '<p><strong>' . $section['title'] . ':</strong> ' . $section['description'] . '</p>';
+        $html .= '<p class="repItem"><strong>' . $section['title'] . ':</strong> ' . $section['description'] . '</p>';
     }
     return $html;
 }
@@ -72,7 +72,7 @@ function create_leadership_layout($section) {
         $html .= '<h3>' . $section['title'] . '</h3>';
     }
     if ($section['acf_fc_layout'] === 'leadership_item') {
-        $html .= '<p>' . $section['leadership_item_text'] . '</p>';
+        $html .= '<p class="repItem">' . $section['leadership_item_text'] . '</p>';
     }
     return $html;
 }
