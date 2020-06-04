@@ -36,7 +36,9 @@ function render_attorney_tabs() {
             $slug = $field['name'];
             $tabsHTML .= '<button class="tablinks">' . $label . '</button>';
             if ($slug === 'notable_representations' || $slug === 'leadership') {
-                $layout = array_map('create_notables_layout', $field['value']);
+                $layout = $slug === 'notable_representations'
+                    ? array_map('create_notables_layout', $field['value'])
+                    : array_map('create_leadership_layout', $field['value']);
                 $layout = implode(' ', $layout);
                 $tabContentHTML .= '<section id="' . $label . '" class="tabcontent">' . $layout . '</section>';
             } else {
@@ -53,11 +55,24 @@ function render_attorney_tabs() {
     return "<div class='dk-tabs'><div class='tab'>$tabsHTML</div> $tabContentHTML</div>";
 }
 
-
 function create_notables_layout($section) {
     $html = '';
     if ($section['acf_fc_layout'] === 'section_heading') {
         $html .= '<h3>' . $section['section_heading'] . '</h3>';
+    }
+    if ($section['acf_fc_layout'] === 'representation_item') {
+        $html .= '<p><strong>' . $section['title'] . ':</strong> ' . $section['description'] . '</p>';
+    }
+    return $html;
+}
+
+function create_leadership_layout($section) {
+    $html = '';
+    if ($section['acf_fc_layout'] === 'section_title') {
+        $html .= '<h3>' . $section['title'] . '</h3>';
+    }
+    if ($section['acf_fc_layout'] === 'leadership_item') {
+        $html .= '<p>' . $section['leadership_item_text'] . '</p>';
     }
     return $html;
 }
