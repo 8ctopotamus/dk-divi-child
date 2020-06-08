@@ -15,5 +15,4 @@
   } 
 
   tabs.forEach(tab => tab.addEventListener('click', handleTabClick));
-
 })();
