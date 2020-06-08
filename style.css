@@ -157,8 +157,8 @@ list-style-image: url(https://www.dkattorneys.com/wp-content/uploads/2018/02/bul
 ## Archive Attorney
 --------------------------------------------------------------*/
 
-.post-type-archive-attorney .et_pb_section,
-.tax-letter .et_pb_section{
+.post-type-archive-attorney #main .et_pb_section,
+.tax-letter #main .et_pb_section{
     padding-left: 4% !important;
     padding-right: 4% !important;
 }
