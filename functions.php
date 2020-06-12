@@ -563,7 +563,6 @@ function dk_home_flyouts_func( $atts ){
                         $html .= '<p>Practice Areas</p>';
                         $html .= '<div class="column' . $colClass . '">';
                             foreach( $posts as $post):
-                                var_dump($post);
                                 if( $count < 5 ) { //if less than 5 posts, put them all into one column
                                     $html .= '<a href="' . site_url() . '/' . 
                                     '/' . $post->post_type . '/'. $post->post_name .'">' . $post->post_title . '</a>';
