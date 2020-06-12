@@ -9,10 +9,16 @@ Developed by Andrew Palmer for Elegant Marketplace www.elegantmarketplace.com Fr
  Wordpress Version: 4.9.6
 */ 
 
+.clearfix::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+
 /* Background Design*/
 body {
-    background-color: #e0e0e0;
-    background: #e0e0e0 url(https://dkdevelop.wpengine.com/wp-content/uploads/2020/05/page1-bg.gif) repeat-x center 130px!important;
+	background-color: #e0e0e0;
+	background: #e0e0e0 url(https://dkdevelop.wpengine.com/wp-content/uploads/2020/05/page1-bg.gif) repeat-x center 130px!important;
 }
 
 .et_boxed_layout #page-container {
@@ -148,6 +154,207 @@ list-style-image: url(https://www.dkattorneys.com/wp-content/uploads/2018/02/bul
 
 
 
+/* Homepage flyouts */
+
+/* .newsByPracticeArea .inner-news {
+	display: flex;
+	justify-content: center;
+	flex-wrap: wrap;
+} */
+
+
+.newsByPracticeArea .column {
+	float: left;
+	width: 31%;
+	margin-right: 2%;
+}
+
+.newsByPracticeArea .column a {
+	display: block !important;
+	font-size: 12px;
+	margin-bottom: 10px;
+}
+
+.sectors {
+	position: relative;		
+}
+.sectors .box {
+	width: 31.3%;
+	margin: 0px 3% 0px 0px;
+	float: left;
+	position: static;
+}
+.sectors .box.last {
+	margin-right: 0px;
+}
+.sectors .postList {
+	height: 370px;
+	position: relative;
+}
+.sectors .postList a.readMore:link {
+	position: absolute;
+	bottom: 10px;
+	right: 10px;
+}
+
+.sectors {
+	overflow: hidden;
+  width: 100%;
+}
+.box {
+	margin-bottom: 2em;
+	position: relative;
+	overflow: visible;
+}
+.sectors .box.last {
+	margin-bottom: 0px;
+}
+a.boxHeading:link, a.boxHeading:visited, .newsByPracticeArea p.newsTitle {
+	display: block;
+	background: #829317;
+	color: #FFF;
+	font: 300 .9em/1em Arial, sans-serif;
+	text-decoration: none;
+	text-transform: uppercase;
+	padding: 1.2em 0px 1.2em 19%;
+}
+a.boxHeading.business {
+	background: url(https://www.dkattorneys.com/wp-content/uploads/2017/11/icon-business.png) no-repeat 4% center, 
+				url(https://www.dkattorneys.com/wp-content/uploads/2017/11/icon-downArrow.png) no-repeat 96% center, 
+				#829317;
+}
+a.boxHeading.public {
+	background: url(https://www.dkattorneys.com/wp-content/uploads/2017/11/icon-public.png) no-repeat 4% center, 
+				url(https://www.dkattorneys.com/wp-content/uploads/2017/11/icon-downArrow.png) no-repeat 96% center, 
+				#829317;
+}
+a.boxHeading.individual {
+	background: url(https://www.dkattorneys.com/wp-content/uploads/2017/11/icon-individual.png) no-repeat 4% center, 
+				url(https://www.dkattorneys.com/wp-content/uploads/2017/11/icon-downArrow.png) no-repeat 96% center, 
+				#829317;
+}
+.sectors .postList {
+	background: #7d7d7d;
+	text-transform: uppercase;
+	font: 300 .9em/1.2em Arial, sans-serif;
+	color: #FFF;
+	padding: 4%;
+}
+.boxPost {
+	padding: 0px 0px .5em 0px;
+	margin-bottom: 1em;
+	border-bottom: 1px solid #FFF;
+}
+.boxPost a:link, .boxPost a:visited {
+	display: inline-block;
+	color: #FFF;
+	font-weight: bold;
+	margin-bottom: .5em;
+	text-decoration: none;
+	text-transform: none;
+}
+.boxPost a:hover, .boxPost a:active {
+	text-decoration: underline;
+}
+a.readMore:link, a.readMore:visited {
+	display: block;
+	text-align: right;
+	color: #FFF;
+	font-weight: bold;
+	text-transform: uppercase;
+	margin-top: 1em;
+}
+.boxPost .post-categories, .boxPost .post-categories li {
+	display: inline;
+	list-style: none;
+	padding: 0px;
+}
+.boxPost span {
+	font-size: .8em;
+}
+.boxPost span a:link, .boxPost span a:visited {
+	text-transform: uppercase;
+}
+.newsByPracticeArea {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	background: #4f4f4f;
+	color: #FFF;
+	text-align: center;
+	width: 100%;
+	z-index: 99;
+	padding-bottom: 15px;
+	display: none;
+}
+.newsByPracticeArea.static {
+	display: block;
+	left: -100%;
+    -webkit-transition: left .5s; /* Safari */
+    transition: left .5s;
+	overflow: hidden;
+}
+.newsByPracticeArea.active {
+	display: block;
+	left: 0px;
+    -webkit-transition: left .5s; /* Safari */
+    transition: left .5s;
+}
+.newsByPracticeArea a:link, .newsByPracticeArea a:visited {
+	display: inline-block;
+	color: #FFF !important;
+	font-size: 1em;
+	line-height: 1.8em;
+	padding: 0;
+	margin-bottom: 1px;
+	text-decoration: none;
+	text-align: left;
+}
+.newsByPracticeArea.static a {
+	opacity: 0;
+    -webkit-transition: opacity 2.5s; /* Safari */
+    transition: opacity 2.5s;	
+}
+.newsByPracticeArea.active a {
+	opacity: 1;
+    -webkit-transition: opacity 2.5s; /* Safari */
+    transition: opacity 2.5s;
+}
+.newsByPracticeArea .inner-news p {
+	font-size: 20px;
+	font-weight: bold;
+  color: #FFF;
+	/* margin-bottom: .5em; */
+}
+.newsByPracticeArea .inner-news p.marginTop {
+	margin-top: 1em!important;
+}
+.newsByPracticeArea p.newsTitle {
+	text-align: center;
+	padding: 1em 0px;
+	margin: 0px!important;
+	font-size: 1.2em;
+	color: #FFF;
+}
+.inner-news {
+	padding: .5em 1em;
+}
+
+a.closeButton {
+	display: block;
+	float: right;
+	font-weight: bold;
+	padding-right: 4em;
+	width: 28px;
+	height: 28px;
+	background: url(https://www.dkattorneys.com/wp-content/uploads/2018/02/icon-close.png) no-repeat;
+	position: relative;
+	top: -5px;
+	right: 10px;
+}
+.bx-wrapper .bx-prev, .bx-wrapper .bx-prev:hover, .bx-wrapper .bx-next, .bx-wrapper .bx-next:hover {
+    transition: none!important;
+}
 
 
 
