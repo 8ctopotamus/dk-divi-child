@@ -1,9 +1,10 @@
 <?php
 
-function dk_divi_child_enqueue_styles() { 
+function dk_divi_child_enqueue_styles() {
     wp_enqueue_style( 'parent-style', get_template_directory_uri() . '/style.css' );
-
-    wp_register_script( 'attorney_tabs', get_stylesheet_directory_uri() . '/js/attorney-tabs.js', '', '', true );
+    wp_register_script( 'pdfmake', '//cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.27/pdfmake.min.js', '', '', true );
+    wp_register_script( 'vfs_fonts', '//cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.27/vfs_fonts.js', '', '', true );
+    wp_register_script( 'single_attorney', get_stylesheet_directory_uri() . '/js/single-attorney.js', '', '', true );
     wp_register_script( 'dk_homepage_flyouts', get_stylesheet_directory_uri() . '/js/homepage-flyouts.js', '', '', true );
 
     if (is_front_page()) {
@@ -11,7 +12,14 @@ function dk_divi_child_enqueue_styles() {
     }
 
     if ( is_singular('attorney') ) {
-        wp_enqueue_script( 'attorney_tabs' );
+        wp_enqueue_script( 'pdfmake' );
+        wp_enqueue_script( 'vfs_fonts' );
+        wp_localize_script( 'single_attorney', 'wp_data', array(
+            'permalink' => get_the_permalink(),
+            'attorney_name' => get_field('attorney_name'),
+            'attorney_title' => get_field('title'),
+        ));
+        wp_enqueue_script( 'single_attorney' );
     }
 }
 add_action( 'wp_enqueue_scripts', 'dk_divi_child_enqueue_styles' );
@@ -19,19 +27,52 @@ add_action( 'wp_enqueue_scripts', 'dk_divi_child_enqueue_styles' );
 
 
 
+function is_subcategory($return_boolean=true) {
+    $result = false;
+    if (is_category()) {
+        $this_category = get_queried_object();
+        if (0 != $this_category->parent) // Category has a parent
+            $result = $return_boolean ? true : $this_category;
+    }
+    return $result;
+}
 
 //set attorneys custom post archive to show all posts
 function set_posts_per_page_attorney( $query ) {
-    if ( !is_admin() && $query->is_main_query() && is_post_type_archive( 'attorney' ) ) {
-      $query->set( 'posts_per_page', '-1' );
+    
+    if ( !is_admin() && $query->is_main_query() ) {
+   
+		
+	  if (is_subcategory()) {
+		  $query->set('post_type', array('post', 'publications'));
+	  }
+		
     }
     // letter archive
     if ( !is_admin() && $query->is_main_query() && is_tax( 'letter' ) ) {
       $query->set( 'posts_per_page', '-1' );
     }
+	// attorneys archive
+	if ( !is_admin() && $query->is_main_query() && is_post_type_archive( 'attorney' ) ) {
+		$query->set( 'posts_per_page', '-1' );
+	  }
+	
   }
-  add_action( 'pre_get_posts', 'set_posts_per_page_attorney' );
+  add_action( 'pre_get_posts', 'set_posts_per_page_attorney', 100 );
 
+
+//Modify the main query    
+function custom_archive_query($query){
+   if(is_admin() || !$query->is_main_query()){
+      return;
+   }
+   $cpts = array("research","documents","booklets");
+   if(is_post_type_archive($cpts)){
+      $query->set('post_type', $cpts);
+      return;
+   }
+}
+add_action('pre_get_posts', 'custom_archive_query');
 
 
 //set letter taxonomy to display results in alphabetical order
@@ -115,8 +156,8 @@ function get_vcard_link($post_id, $force_generate = false) {
  * Single Attorney Tabs
  */
 function dk_divi_attorney_tabs( $content ) {
-    if ( !is_singular('attorney') ) {
-        return render_attorney_tabs() . $content;
+    if ( is_singular('attorney') ) {
+        return render_attorney_tabs() . $content ;
     }
     return $content;
 }
@@ -131,11 +172,11 @@ function render_attorney_tabs() {
     $tabsHTML = '';
     $tabContentHTML = '';
     foreach($fields as $field) {
-        if ($field) {
+        if ($field && $field['value'] !== false) {
             $label = $field['label'];
             $slug = $field['name'];
             $tabsHTML .= '<button class="tablinks">' . $label . '</button>';
-            if ($slug === 'notable_representations' || $slug === 'leadership') {
+            if ( $slug === 'notable_representations' || $slug === 'leadership' ) {
                 $layout = $slug === 'notable_representations'
                     ? array_map('create_notables_layout', $field['value'])
                     : array_map('create_leadership_layout', $field['value']);
@@ -152,7 +193,9 @@ function render_attorney_tabs() {
         }
     }
 
-    return "<div class='dk-tabs'><div class='tab'>$tabsHTML</div> $tabContentHTML</div>";
+    $htmlForPDF = '<div id="attorney-pdf-markup"></div>';
+
+    return "<div class='dk-tabs'><div class='tab'>$tabsHTML</div> $tabContentHTML</div>" . $htmlForPDF;
 }
 
 function create_notables_layout($section) {
@@ -270,7 +313,7 @@ function dk_home_flyouts_func( $atts ){
                 }
                 wp_reset_postdata();
             }             
-            $html .= '<a href="<?php echo site_url(); ?>/categories/business/" class="readMore">Read More >></a>
+            $html .= '<a href="' . site_url() . '/categories/business/" class="readMore">Read More >></a>
             </div><!-- postList -->
             
             <div class="newsByPracticeArea static" id="businessAreas">
@@ -541,7 +584,7 @@ function dk_home_flyouts_func( $atts ){
                     wp_reset_postdata();
                 }
                 $html .= '
-                    <a href="<?php echo site_url(); ?>/categories/individual/" class="readMore">Read More >></a>
+                    <a href="' . site_url() . '/categories/individual/" class="readMore">Read More >></a>
                 </div><!-- postList -->
 
             <div class="newsByPracticeArea static" id="individualAreas">
@@ -638,33 +681,141 @@ add_shortcode( 'dk-flyouts', 'dk_home_flyouts_func' );
 
 
 
-// [coronavirus-posts]
-function coronavirus_posts_func( $atts ){
-	$html = '';
-	$coronaCats = get_categories(
-		array( 'parent' => 114 )
-	);
-	foreach ($coronaCats as $cat) {
-		$html .= '<h3>' . $cat->name . '</h3>';
-		$query = new WP_Query([
-			'post_type' => array('post', 'publications'),
-			'cat'=> $cat->term_id,
-			'posts_per_page' => -1,
-		]);				
-		if ( $query->have_posts() ) {
-			$html .= '<ul style="list-style: none;padding-left: 0; margin-left: 0;">';
-			while ( $query->have_posts() ) {
-				$query->the_post();
-				$thumb = get_the_post_thumbnail( get_the_ID(), 'thumbnail', ['style' => 'margin-right: 25px; min-width: 150px;'] );
-				$html .= '<li style="display: flex; align-items: center;">';
-				$html .= !empty($thumb) ? $thumb : null;
-				$html .= '<h4><a href="' . get_permalink() . '" style="font-size: 1rem;">' . get_the_title() . '</a><br/>'.get_the_date('F j, Y').'</h4>';
-				$html .= '</li>';
-			}
-			$html .= '</ul>';
-		}
-		wp_reset_postdata();
-	}
-	return $html;
+//create a custom taxonomy for publications
+add_action( 'init', 'create_topics_hierarchical_taxonomy', 0 );
+
+function create_topics_hierarchical_taxonomy() {
+  $labels = array(
+    'name' => _x( 'Publication Categories', 'taxonomy general name' ),
+    'singular_name' => _x( 'Publication Category', 'taxonomy singular name' ),
+    'search_items' =>  __( 'Search Publication Categories' ),
+    'all_items' => __( 'All Publication Categories' ),
+    'parent_item' => __( 'Parent Publication Category' ),
+    'parent_item_colon' => __( 'Parent Publication Category:' ),
+    'edit_item' => __( 'Edit Publication Category' ),
+    'update_item' => __( 'Update Publication Category' ),
+    'add_new_item' => __( 'Add New Publication Category' ),
+    'new_item_name' => __( 'New Publication Category Name' ),
+    'menu_name' => __( 'Publication Category' ),
+  );
+
+  register_taxonomy('publication_categories',array('publications'), array(
+    'hierarchical' => true,
+    'labels' => $labels,
+    'show_ui' => true,
+    'show_admin_column' => true,
+    'query_var' => true,
+    'rewrite' => array( 'slug' => 'publications-category' ),
+	'show_in_rest'          => true,
+    'rest_base'             => 'publications-category',	  
+  ));
+
 }
-add_shortcode( 'coronavirus-posts', 'coronavirus_posts_func' );
+
+//create a custom taxonomy for posts, to categorize Events by practice area
+add_action( 'init', 'create_events_hierarchical_taxonomy', 0 );
+
+function create_events_hierarchical_taxonomy() {
+  $labels = array(
+    'name' => _x( 'Event Categories', 'taxonomy general name' ),
+    'singular_name' => _x( 'Event Category', 'taxonomy singular name' ),
+    'search_items' =>  __( 'Search Event Categories' ),
+    'all_items' => __( 'All Event Categories' ),
+    'parent_item' => __( 'Parent Event Category' ),
+    'parent_item_colon' => __( 'Parent Event Category:' ),
+    'edit_item' => __( 'Edit Event Category' ),
+    'update_item' => __( 'Update Event Category' ),
+    'add_new_item' => __( 'Add New Event Category' ),
+    'new_item_name' => __( 'New Event Category Name' ),
+    'menu_name' => __( 'Event Category' ),
+  );
+
+  register_taxonomy('event_categories',array('post'), array(
+    'hierarchical' => true,
+    'labels' => $labels,
+    'show_ui' => true,
+    'show_admin_column' => true,
+    'query_var' => true,
+    'rewrite' => array( 'slug' => 'event-category' ),
+	  'show_in_rest'          => true,
+    'rest_base'             => 'event-category',
+  ));
+
+}
+
+
+
+
+
+
+
+
+
+
+function coronaSidebar() {
+    $html = '<div class="corona-sidebar">';
+        $currentcat = get_queried_object();
+       $html .= '<h2>Coronavirus Resources</h2>';
+        // if ($currentcat->parent == 114) {
+            $coronaCats = get_categories( array( 'parent' => 114 ) );
+            foreach ($coronaCats as $cat) {
+                $html .= '<h5>';
+                $html .='<a href=" '. site_url('/categories/coronavirus/' .$cat->slug).'">';
+                            $html .= $cat->name;
+                            $html .='</a>';
+                    $html .='</h5>'; 
+             }
+             $html .='</div>';
+       return $html; 
+    }
+add_shortcode('corona-sidebar', 'coronaSidebar');
+
+
+
+function cats_sidebar() {
+	$industriesIds = [192, 198, 200, 202, 209, 213, 217];
+	$relatedIndustries = [];
+	$html = '<div class="cats-sidebar">';
+	$currentCat = get_queried_object();
+	$catSlug = $currentCat->post_name;
+	$args = [
+		'post_type' => 'practice_areas',
+		'category_name' => $catSlug,
+		'posts_per_page' => -1,
+		'order' => 'ASC',
+		'orderby' => 'title',
+	];
+	$the_query = new WP_Query( $args );
+	if ( $the_query->have_posts() ) {
+		$html .= '<h3>Practice Areas</h3>';
+		$html .= '<ul class="publicationCatList">';
+		while ( $the_query->have_posts() ) {
+			$the_query->the_post();
+			if ( in_array( get_the_ID(), $industriesIds) ) {
+				array_push($relatedIndustries, get_post( get_the_ID() ));
+			}
+			$postSlug = get_post_field( 'post_name', get_the_ID() );					
+			$html .= '<li><a href="'. site_url() .'/event-category/'. $postSlug .'-news">'. get_the_title().'</a></li>';
+		}
+		$html .= '</ul>';
+	}
+	wp_reset_postdata();
+
+	if( $relatedIndustries ): 
+		$html .= '<h3>Industries</h3>';
+		$html .= '<ul class="related">';
+		foreach( $relatedIndustries as $post):
+			$html .= '<li><a href="'. site_url() .'/'. $post->post_name .'/'. $post->post_name .'">'. $post->post_title.'</a></li>';
+		endforeach; 
+		$html .= '</ul>';
+	endif;
+
+   $html .= '</div>';
+   return $html; 
+}
+add_shortcode('cats-sidebar', 'cats_sidebar');
+
+
+
+
+
