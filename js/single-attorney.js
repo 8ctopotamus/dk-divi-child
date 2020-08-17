@@ -1,13 +1,11 @@
 // Attorney Profile PDF and Tabs
 (function() {
-  const { SITE_URL, attorney_name, attorney_title } = wp_data
-  const printBtn = document.getElementById('getsim-print-o-matic')
+  const { SITE_URL, attorney_name, attorney_title } = wp_data;
+  const printBtn = document.getElementById('getsim-print-o-matic');
   const tabs = Array.from(document.querySelectorAll('.tablinks'));
   const tabContent = Array.from(document.querySelectorAll('.tabcontent'));
-  const attorneyProfile = document.querySelector('.dk-random-attorney-profile')
-  const attorneyIMG = document.querySelector('.dk-random-attorney-profile img')
-  const logo = document.querySelector('body header:first-of-type img')
-  const tabContentSections = Array.from(document.querySelectorAll('.tabcontent section'));
+  const attorneyIMG = document.querySelector('.dk-random-attorney-profile img');
+  const logo = document.querySelector('body header:first-of-type img');
 
   function getBase64Image(img) {
     var canvas = document.createElement("canvas");
@@ -19,65 +17,83 @@
     return dataURL;
   }
   
-  const elToObj = el => {
-    console.log(el)
-    let style
-    let type
-    switch(el.tagName){
+  const mapToPDFObject = el => {
+    let style = 'body';
+    let type = 'text';
+    let value = el.innerText;
+    const tagName = el.tagName;
+    switch(tagName){
       case 'H2':
         style = 'header';
         break;
       case 'H3':
         style = 'bigger';
         break;
-      default:
-        type = 'text'
-        style = 'body'
+      case 'UL':
+        type = tagName.toLowerCase();
+        value = [...el.children].map(c => c.innerText);
+        break;
     }
-    return { [type]: el.innerText, style }
+    return { [type]: value, style };
+  };
 
-    // {
-		// 	ul: [
-		// 		'item 1',
-		// 		'item 2',
-		// 		'item 3'
-		// 	]
-		// },
-  }
-
-  function generatePDF(e) {
+  const generatePDF = e => {
     e.preventDefault()
-    
-    const mainBody = [...tabContent]
-      .reduce((result, el) => {
-        Array.from(el.children)
-          .map(child => result.push( elToObj(child) ))
-        return result;
-      }, []);
-
+    const brandColor = '#829317';
+    const mainBody = [...tabContent].reduce((result, el) => {
+      Array.from(el.children).map(child => result.push( mapToPDFObject(child) ))
+      return result;
+    }, []);
     const docDefinition = { 
+      footer: function(currentPage, pageCount) { 
+        return {
+          columns: [
+            [
+              { 
+                text: 'Brookfield - Green Bay - Milwaukee',
+                style: 'smaller',
+                margins: [20, 0, 0, 20],
+              },
+              {
+                text: SITE_URL, link: SITE_URL,
+                style: 'smaller',
+                margins: [0, 0, 20, 20],
+              },
+            ],
+            { 
+              text: currentPage.toString() + ' of ' + pageCount,
+              style: 'smaller',
+              alignment: 'right',
+              margins: [0, 20, 20, 0],
+            },
+          ],
+        }
+      },
       content: [
         {
-          image: getBase64Image(logo),
-          fit: [100, 100],
-          // style: {marginLeft: 'auto'}
+          image: 'logo',
+          width: 80,
+          alignment: 'right',
         },
         {
           alignment: 'left',
           columns: [
             { 
-              image: getBase64Image(attorneyIMG),
-              width: 120,
+              image: 'advisor',
+              width: 100,
             },
             [
               { text: attorney_name, style: 'header' },
-              { text:  attorney_title },
+              { text:  attorney_title, style: 'bigger' },
               ...mainBody,
-              { text: 'Brookfield │ Green Bay │ Milwaukee' },
-              { text: SITE_URL, link: SITE_URL },
+              
             ]
           ]
-        },
+        },   
+        {
+          image: 'logo',
+          width: 80,
+        },     
       ],
       styles: {
         header: {
@@ -86,20 +102,30 @@
         },
         bigger: {
           fontSize: 15,
-          italics: true
+          bold: true,
+          italics: true,
+          color: brandColor,
         },
         body: {
-          fontSize: 12,
+          fontSize: 10,
           marginBottom: 10,
+          lineHeight: 1.15,
+        },
+        smaller: {
+          fontSize: 8,
+          color: '#999'
         }
       },
       defaultStyle: {
         columnGap: 20
-      }  
+      },
+      images: {
+        logo: getBase64Image(logo),
+        advisor: getBase64Image(attorneyIMG),
+      } 
     };
     pdfMake.createPdf(docDefinition).open();
   };
-
 
   // change tabs
   function handleTabClick(evt) {
@@ -113,7 +139,6 @@
     document.getElementById(this.innerText).style.display = "block";
     evt.currentTarget.className += " active";
   };
-
 
   // attach listeners
   tabs.forEach(tab => tab.addEventListener('click', handleTabClick));

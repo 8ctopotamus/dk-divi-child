@@ -15,7 +15,7 @@ function dk_divi_child_enqueue_styles() {
         wp_enqueue_script( 'pdfmake' );
         wp_enqueue_script( 'vfs_fonts' );
         wp_localize_script( 'single_attorney', 'wp_data', array(
-            'permalink' => get_the_permalink(),
+            'SITE_URL' => site_url(),
             'attorney_name' => get_field('attorney_name'),
             'attorney_title' => get_field('title'),
         ));
