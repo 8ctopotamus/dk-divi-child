@@ -34,37 +34,45 @@
         value = [...el.children].map(c => c.innerText);
         break;
     }
+    if (el.innerText === 'Main Bio') {
+      value = ''
+    }
     return { [type]: value, style };
   };
 
   const generatePDF = e => {
     e.preventDefault()
+    
     const brandColor = '#829317';
+    
     const mainBody = [...tabContent].reduce((result, el) => {
       Array.from(el.children).map(child => result.push( mapToPDFObject(child) ))
       return result;
     }, []);
+
     const docDefinition = { 
+      info: {
+        title: attorney_name,
+      },
       footer: function(currentPage, pageCount) { 
         return {
+          margin: [45, 10],
+          height: 240,
           columns: [
             [
               { 
                 text: 'Brookfield - Green Bay - Milwaukee',
                 style: 'smaller',
-                margins: [20, 0, 0, 20],
               },
               {
                 text: SITE_URL, link: SITE_URL,
                 style: 'smaller',
-                margins: [0, 0, 20, 20],
               },
             ],
             { 
               text: currentPage.toString() + ' of ' + pageCount,
               style: 'smaller',
               alignment: 'right',
-              margins: [0, 20, 20, 0],
             },
           ],
         }
@@ -124,6 +132,7 @@
         advisor: getBase64Image(attorneyIMG),
       } 
     };
+
     pdfMake.createPdf(docDefinition).open();
   };
 
