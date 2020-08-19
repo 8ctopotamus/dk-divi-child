@@ -4,8 +4,11 @@
   const printBtn = document.getElementById('getsim-print-o-matic');
   const tabs = Array.from(document.querySelectorAll('.tablinks'));
   const tabContent = Array.from(document.querySelectorAll('.tabcontent'));
-  const attorneyIMG = document.querySelector('.dk-random-attorney-profile img');
   const logo = document.querySelector('body header:first-of-type img');
+  const profile = document.querySelector('.dk-random-attorney-profile');
+  const attorneyIMG = profile.children[2];
+  const posts = document.querySelectorAll('.dkdm_attorney_posts_bar')[1]; // NOTE: for some reason, there are 2 elements with .dkdm_attorney_posts_bar in Divi DK Mods. We are selecting the inner one here.
+  const brandColor = '#829317';
 
   function getBase64Image(img) {
     var canvas = document.createElement("canvas");
@@ -42,85 +45,99 @@
 
   const generatePDF = e => {
     e.preventDefault()
-    
-    const brandColor = '#829317';
-    
+
+    const profileBody = [
+      [...profile.children].slice(3),
+      [...posts.children]
+    ]
+      .flat()
+      .map(el => mapToPDFObject(el))
+
     const mainBody = [...tabContent].reduce((result, el) => {
-      Array.from(el.children).map(child => result.push( mapToPDFObject(child) ))
+      Array.from(el.children).map(child => result.push( mapToPDFObject(child) ));
       return result;
     }, []);
-
+    
     const docDefinition = { 
       info: {
         title: attorney_name,
       },
-      footer: function(currentPage, pageCount) { 
-        return {
-          margin: [45, 10],
-          height: 240,
-          columns: [
-            [
-              { 
-                text: 'Brookfield - Green Bay - Milwaukee',
-                style: 'smaller',
-              },
-              {
-                text: SITE_URL, link: SITE_URL,
-                style: 'smaller',
-              },
-            ],
-            { 
-              text: currentPage.toString() + ' of ' + pageCount,
-              style: 'smaller',
-              alignment: 'right',
-            },
-          ],
-        }
-      },
       content: [
         {
           image: 'logo',
-          width: 80,
+          width: 100,
           alignment: 'right',
         },
         {
           alignment: 'left',
           columns: [
-            { 
-              image: 'advisor',
-              width: 100,
+            {
+              stack: [
+                { 
+                  image: 'advisor',
+                  width: 130,
+                  margin: [0 ,0 ,0, 20]
+                },
+                ...profileBody,
+              ],
+              width: 130,
             },
             [
               { text: attorney_name, style: 'header' },
               { text:  attorney_title, style: 'bigger' },
               ...mainBody,
-              
             ]
           ]
-        },   
-        {
-          image: 'logo',
-          width: 80,
-        },     
+        },      
       ],
+      footer: function(currentPage, pageCount) { 
+        return {
+          margin: [30, 40],
+          height: 200,
+          columns: [
+            {
+              image: 'logo',
+              width: 80,
+            },
+            [
+              { 
+                text: 'Brookfield - Green Bay - Milwaukee',
+                style: 'smaller',
+                alignment: 'right',
+              },
+              {
+                text: SITE_URL, 
+                link: SITE_URL,
+                style: 'smaller',
+                alignment: 'right',
+              },
+              { 
+                text: currentPage.toString() + ' of ' + pageCount,
+                style: 'smaller',
+                alignment: 'right',
+              },
+            ]
+            
+          ],
+        }
+      },
       styles: {
         header: {
-          fontSize: 18,
+          fontSize: 16,
           bold: true
         },
         bigger: {
-          fontSize: 15,
+          fontSize: 12,
           bold: true,
-          italics: true,
           color: brandColor,
         },
         body: {
-          fontSize: 10,
+          fontSize: 8.5,
           marginBottom: 10,
-          lineHeight: 1.15,
+          // lineHeight: 1.15,
         },
         smaller: {
-          fontSize: 8,
+          fontSize: 7,
           color: '#999'
         }
       },
@@ -130,7 +147,8 @@
       images: {
         logo: getBase64Image(logo),
         advisor: getBase64Image(attorneyIMG),
-      } 
+      },
+      pageMargins: [ 30, 30, 30, 100 ],
     };
 
     pdfMake.createPdf(docDefinition).open();
