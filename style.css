@@ -140,10 +140,19 @@ input#gform_submit_button_1 {
 }
 
 .tabcontent {
-    display: none;
-    padding: 6px 12px;
-    border-top: none;
-} 
+	display: none;
+	padding: 6px 12px;
+	border-top: none;
+}
+
+.tabcontent > h2 {
+	margin-top: 0px;
+	padding-top: 0px;
+	color: #829317;
+	text-transform: uppercase !important;
+	margin-bottom: .5em;
+}
+
 .dk-tabs section:first-of-type {
     display: block;
 }

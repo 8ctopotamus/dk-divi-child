@@ -19,7 +19,16 @@
     var dataURL = canvas.toDataURL("image/png");
     return dataURL;
   }
-  
+
+
+  const ignore = el => {
+    if (
+      el.innerText === 'Main Bio' || el.classList.contains('hide-from-pdf')) {
+      return false
+    }
+    return true
+  }
+
   const mapToPDFObject = el => {
     let style = 'body';
     let type = 'text';
@@ -37,24 +46,27 @@
         value = [...el.children].map(c => c.innerText);
         break;
     }
-    if (el.innerText === 'Main Bio') {
-      value = ''
+    if (el.classList.contains('contactinfo') || el.classList.contains('location')) {
+      style = 'contactinfo'
     }
     return { [type]: value, style };
   };
 
   const generatePDF = e => {
-    e.preventDefault()
+    e.preventDefault();
 
     const profileBody = [
       [...profile.children].slice(3),
       [...posts.children]
     ]
       .flat()
+      .filter(ignore)
       .map(el => mapToPDFObject(el))
 
     const mainBody = [...tabContent].reduce((result, el) => {
-      Array.from(el.children).map(child => result.push( mapToPDFObject(child) ));
+      Array.from(el.children)
+        .filter(ignore)
+        .map(child => result.push( mapToPDFObject(child) ));
       return result;
     }, []);
     
@@ -75,12 +87,12 @@
               stack: [
                 { 
                   image: 'advisor',
-                  width: 130,
-                  margin: [0 ,0 ,0, 20]
+                  width: 160,
+                  margin: [0 ,0 ,0, 10]
                 },
                 ...profileBody,
               ],
-              width: 130,
+              width: 160,
             },
             [
               { text: attorney_name, style: 'header' },
@@ -123,23 +135,28 @@
       },
       styles: {
         header: {
-          fontSize: 16,
+          fontSize: 18,
           bold: true
         },
         bigger: {
-          fontSize: 12,
+          fontSize: 14,
           bold: true,
           color: brandColor,
-        },
+        },        
         body: {
-          fontSize: 8.5,
+          fontSize: 10,
           marginBottom: 10,
           // lineHeight: 1.15,
         },
         smaller: {
           fontSize: 7,
           color: '#999'
-        }
+        },
+        contactinfo: {
+          fontSize: 8.5,
+          marginBottom: 5,
+          bold: true
+        },
       },
       defaultStyle: {
         columnGap: 20
@@ -148,7 +165,7 @@
         logo: getBase64Image(logo),
         advisor: getBase64Image(attorneyIMG),
       },
-      pageMargins: [ 30, 30, 30, 100 ],
+      pageMargins: [ 40, 40, 40, 100 ],
     };
 
     pdfMake.createPdf(docDefinition).open();

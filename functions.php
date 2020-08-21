@@ -147,8 +147,20 @@ function get_vcard_link($post_id, $force_generate = false) {
 }
 
 
-
-
+// Banner Image at top of Posts and Publications
+function dk_banner_image( $content ) {
+    $finalContent = $content;
+    if ( is_singular('post') || is_singluar('publications') ) {
+        $bannerImage = get_field('banner_image');
+        $bannerHTML = $bannerImage 
+            ? '<style>.et_pb_title_featured_container {display:none;}</style>
+               <img src="'. $bannerImage['url'] .'" alt="'. $bannerImage['alt'] .'" class="banner-image"/>'
+            : '';
+        $finalContent = $bannerHTML . $finalContent;
+    }
+    return $finalContent;
+}
+add_filter( 'the_content', 'dk_banner_image' );
 
 
 
@@ -223,13 +235,6 @@ function create_leadership_layout($section) {
 
 
 
-
-
-
-
-
-
-
 /** 
  * [dk-flyouts]
  */ 
@@ -243,7 +248,7 @@ function exclude_post_categories($excl='', $spacer=' ') {
             $html = '';
             if (!in_array($cat->cat_ID, $exclude)) {
                 $html .= '<a href="' . get_category_link($cat->cat_ID) . '" ';
-                $html .= 'title="' . $cat->cat_name . '">' . $cat->cat_name . '</a>';
+                $html .= 'title="' . $cat->cat_name . '">' . $cat->cat_name . '</a>&nbsp;';
                 if ($thecount > 0) {
                     $html .= $spacer;
                 }
