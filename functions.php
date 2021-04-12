@@ -2,9 +2,18 @@
 
 function dk_divi_child_enqueue_styles() {
     wp_enqueue_style( 'parent-style', get_template_directory_uri() . '/style.css' );
+
+    // 	page pdfs
+    wp_register_script( 'jsPDF', '//cdnjs.cloudflare.com/ajax/libs/jspdf/1.3.4/jspdf.min.js', '', '', true );
+    wp_register_script( 'html2canvas', 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.5.0-alpha2/html2canvas.min.js', '', '', true );
+    wp_register_script( 'filesaver', 'https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.min.js', '', '', true );
+    wp_register_script( 'print_page', get_stylesheet_directory_uri() . '/js/print-page.js', '', '', true );
+
+    // single attorney pdfs
     wp_register_script( 'pdfmake', '//cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.27/pdfmake.min.js', '', '', true );
     wp_register_script( 'vfs_fonts', '//cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.27/vfs_fonts.js', '', '', true );
     wp_register_script( 'single_attorney', get_stylesheet_directory_uri() . '/js/single-attorney.js', '', '', true );
+	wp_register_script( 'single_publication', get_stylesheet_directory_uri() . '/js/single-publication.js', array('jquery'), '', true );
     wp_register_script( 'dk_homepage_flyouts', get_stylesheet_directory_uri() . '/js/homepage-flyouts.js', '', '', true );
 
     if (is_front_page()) {
@@ -20,11 +29,85 @@ function dk_divi_child_enqueue_styles() {
             'attorney_title' => get_field('title'),
         ));
         wp_enqueue_script( 'single_attorney' );
+    } else {
+        wp_enqueue_script( 'jsPDF' );
+        wp_enqueue_script( 'html2canvas' );
+        wp_enqueue_script( 'filesaver' );
+        wp_enqueue_script( 'print_page' );    
     }
+	
+// 	if ( is_singular('publications') ) {
+// 		wp_enqueue_script( 'single_publication' );
+// 	}
+	
 }
 add_action( 'wp_enqueue_scripts', 'dk_divi_child_enqueue_styles' );
 
 
+// Allow publishing of future posts and publications
+// https://wordpress.stackexchange.com/questions/30178/make-future-posts-visible-to-the-public-not-just-within-wp-query
+function setup_future_hook() {
+    // Replace native future_post function with replacement
+    remove_action('future_post','_future_post_hook');
+    add_action('future_post','publish_future_post_now');
+
+    remove_action('future_publications','_future_publications_hook');
+    add_action('future_publications','publish_future_post_now');
+}
+
+function publish_future_post_now($id) {
+    // Set new post's post_status to "publish" rather than "future."
+    wp_publish_post($id);
+}
+
+add_action('init', 'setup_future_hook');
+
+
+
+function custom_remove_default_et_pb_custom_search() {
+	remove_action( 'pre_get_posts', 'et_pb_custom_search' );
+	add_action( 'pre_get_posts', 'custom_et_pb_custom_search' );
+}
+add_action( 'wp_loaded', 'custom_remove_default_et_pb_custom_search' );
+
+
+
+function custom_et_pb_custom_search( $query = false ) {
+	if ( is_admin() || ! is_a( $query, 'WP_Query' ) || ! $query->is_search ) {
+		return;
+	}
+
+	if ( isset( $_GET['et_pb_searchform_submit'] ) ) {
+		$postTypes = array();
+        
+		if ( ! isset($_GET['et_pb_include_posts'] ) && ! isset( $_GET['et_pb_include_pages'] ) ) {
+            $postTypes = array( 'post' );
+        }
+
+		if ( isset( $_GET['et_pb_include_pages'] ) ) {
+            $postTypes = array( 'page' );
+        }
+
+		if ( isset( $_GET['et_pb_include_posts'] ) ) {
+            $postTypes[] = 'post';
+        } 
+
+		/* BEGIN Add custom post types */
+		$postTypes[] = 'publications';
+		/* END Add custom post types */
+
+		$query->set( 'post_type', $postTypes );
+
+		if ( ! empty( $_GET['et_pb_search_cat'] ) ) {
+			$categories_array = explode( ',', $_GET['et_pb_search_cat'] );
+			$query->set( 'category__not_in', $categories_array );
+		}
+
+		if ( isset( $_GET['et-posts-count'] ) ) {
+			$query->set( 'posts_per_page', (int) $_GET['et-posts-count'] );
+		}
+	}
+}
 
 
 function is_subcategory($return_boolean=true) {
@@ -41,9 +124,9 @@ function is_subcategory($return_boolean=true) {
 function set_posts_per_page_attorney( $query ) {
     
     if ( !is_admin() && $query->is_main_query() ) {
-   
+   		
 		
-	  if (is_subcategory()) {
+	  if (is_category() || is_subcategory()) {
 		  $query->set('post_type', array('post', 'publications'));
 	  }
 		
@@ -54,7 +137,8 @@ function set_posts_per_page_attorney( $query ) {
     }
 	// attorneys archive
 	if ( !is_admin() && $query->is_main_query() && is_post_type_archive( 'attorney' ) ) {
-		$query->set( 'posts_per_page', '-1' );
+        $query->set( 'posts_per_page', '-1' );
+        $query->set( 'orderby', 'title' );
 	  }
 	
   }
@@ -118,6 +202,9 @@ function get_vcard_link($post_id, $force_generate = false) {
 				case 'Milwaukee':
 					$office = ';;111 E. Kilbourn Avenue, Suite 1400;Milwaukee;WI;53202-6613;USA';
 					break;
+				case 'Madison':
+					$office = ';;10 East Doty Street, Suite 800;Madison;WI;53703;USA';
+					break;
 				default:
 					$office = ';;318 S. Washington Street, Suite 300;Green Bay;WI;54301;USA';
 					break;
@@ -150,18 +237,175 @@ function get_vcard_link($post_id, $force_generate = false) {
 // Banner Image at top of Posts and Publications
 function dk_banner_image( $content ) {
     $finalContent = $content;
-    if ( is_singular('post') || is_singluar('publications') ) {
-        $bannerImage = get_field('banner_image');
+    $bannerImage = get_field('banner_image');
+    if ( (is_singular('post') || is_singular('publications')) && $bannerImage ) {
         $bannerHTML = $bannerImage 
             ? '<style>.et_pb_title_featured_container {display:none;}</style>
                <img src="'. $bannerImage['url'] .'" alt="'. $bannerImage['alt'] .'" class="banner-image"/>'
             : '';
         $finalContent = $bannerHTML . $finalContent;
-    }
+    } 
+	
+
     return $finalContent;
 }
 add_filter( 'the_content', 'dk_banner_image' );
 
+
+//remove dots at end of post excerpt
+function new_excerpt_more( $more ) {
+	return '...';
+}
+add_filter('excerpt_more', 'new_excerpt_more');
+
+
+
+/**
+ *  Create a custom excerpt string from the first paragraph of the content.
+ *
+ *  @param   integer  $id       The id of the post
+ *  @return  string   $excerpt  The excerpt string
+ */
+function wp_first_paragraph_excerpt( $id=null ) {
+    // Set $id to the current post by default
+    if( !$id ) {
+        global $post;
+        $id = get_the_id();
+    }
+
+    // Get the post content
+    $content = get_post_field( 'post_content', $id );
+    $content = apply_filters( 'the_content', strip_shortcodes( $content ) );
+
+    // Remove all tags, except paragraphs
+    $excerpt = strip_tags( $content, '<p></p>' );
+
+    // Remove empty paragraph tags
+    $excerpt = force_balance_tags( $excerpt );
+    $excerpt = preg_replace( '#<p>\s*+(<br\s*/*>)?\s*</p>#i', '', $excerpt );
+    $excerpt = preg_replace( '~\s?<p>(\s|&nbsp;)+</p>\s?~', '', $excerpt );
+
+    // Get the first paragraph
+    $excerpt = substr( $excerpt, 0, strpos( $excerpt, '</p>' ) + 4 );
+
+    // Remove remaining paragraph tags
+    $excerpt = strip_tags( $excerpt );
+
+    return $excerpt;
+}
+
+
+
+
+add_filter('the_content', function($content) {
+	$newsPage = is_page('News');
+	$singleAttyNews = is_page('Single Attorney News');
+	$singlePubs = is_page('Single Attorney Publications');
+	$pubCat = is_category('publications-category');
+	
+	if ($singleAttyNews || $singlePubs || $newsPage || $pubCat) {
+		$html = '';
+		//assign the GET parameter from home page to a variable			
+		if (isset($_GET['topic'])) {
+			$theTopic = $_GET['topic'];
+			$theTopic = str_replace("-", " ", $theTopic);
+			$theTopic = str_replace("_", "-", $theTopic);
+		}
+		//get the post object of the Practice Area post corresponding to the page title specified in the GET parameter variable		
+		$selectedTopic = get_page_by_title( $theTopic, OBJECT, 'attorney' );
+		if ($newsPage) {
+			$selectedTopic = get_page_by_title( $theTopic, OBJECT, 'practice_areas' );	
+		}
+	 	$topicID = $selectedTopic->ID;		
+		
+// 		echo 'the id is: ' . $topicID;
+		
+		// determine page title to display		
+		$thisPageTitle = get_field('attorney_name', $topicID );
+		if ($singleAttyNews) {
+			$html .= '<h1 class="newsTitle">' . $thisPageTitle . ' In the News</h1>';
+		} else if ($thisPageTitle) {
+			$html .= '<h1 class="newsTitle">' . $thisPageTitle . ' Publications</h1>';
+		} else if ($pubCat) {
+			$html .= '<h1 class="newsTitle">' . $theTopic . ' Publications</h1>';
+		} else if ($newsPage){
+			$html .= '<h1 class="newsTitle">' . $theTopic .' News </h1>';
+			
+		}
+		
+		// determine post-type and meta-key
+		$post_type = 'post';
+		$meta_key = false;
+		if ($singlePubs) {
+			$post_type = 'publications';
+			$meta_key = 'related_attorneys';
+		} else if ($singleAttyNews) {
+			$meta_key = 'related_attorneys';
+		} else if ($newsPage) {
+			$meta_key = 'related_practice_areas';
+		}
+		
+		//show posts that have the clicked Practice Area in related practice areas custom field
+		$paged = (get_query_var('paged')) ? get_query_var('paged') : 1;
+		$args = array(
+			'posts_per_page'	=> 10,
+			'post_type'			=>  $post_type,
+			'paged'				=>	$paged,
+// 			'meta_key'			=> 'display_date',
+// 			'orderby'			=> 'meta_value_num',
+			'order'				=> 'DESC',
+			'meta_query' => array(
+				array(
+					'key' => $meta_key, // name of custom field 
+					'value' => $topicID,
+					'compare' => 'LIKE',
+				)
+			)
+		);
+		$the_query = new WP_Query( $args ); 
+		if ( $the_query->have_posts() ) :
+			while ( $the_query->have_posts() ) : $the_query->the_post();
+				$post = get_post();
+		
+				$isPhoto = get_the_post_thumbnail() ;
+				
+                $str = wpautop( strip_shortcodes(get_the_content()) );
+				$str = substr( $str, 0, strpos( $str, '</p>' ));
+                $str = strip_tags($str, '<a><strong><em>');
+                
+                if ($str === '') {
+                    $str = preg_replace('/\[\/?et_pb.*?\]/', '', $post->post_content); // strip divi shortcodes - https://gist.github.com/jfarsen/beab40491848dc161436eaa6a86b95f2
+                }
+
+				$excerpt = '<p>' . wp_trim_words( $str, 55, '...' ) . '</p>';
+            
+				if($isPhoto) {
+					$html .= '<article class="group featured et_pb_post articleGrid"> ';
+				} else {
+					$html .= '<article class="group et_pb_post">';
+				}
+		
+ 				$html .= '<div class="featuredImage">' . $isPhoto . '</div>';
+				$html.= '<div class="post-container">';
+				$html .= '<h2 class="entry-title1"><a class="" href="'. get_the_permalink() . '">' . get_the_title() . '</a></h2>';
+				$html .= '<div class="entry-meta">'. get_the_date(). '</div>';
+				$html .= '<div class=excerpt-text>'. $excerpt . '<div>';
+				$html .= '<div class="read-text"><a href="' . get_the_permalink() . '" class="readFull post-content-inner more-link">Read More</a></div>';
+				$html.= '</div>';
+				$html .= '</article>';
+		
+			endwhile;
+		
+			wp_reset_postdata(); 
+        endif;
+        
+        $html .= wp_pagenavi( array( 'query' => $the_query, 'echo' => false ) ); 
+        wp_reset_query();
+
+		$content = $content . $html;	
+	}	
+	return $content;
+}, 100);
 
 
 /**
@@ -175,7 +419,54 @@ function dk_divi_attorney_tabs( $content ) {
 }
 add_filter( 'the_content', 'dk_divi_attorney_tabs' );
 
-function render_attorney_tabs() {
+// function render_attorney_tabs() {
+//     $fields = [
+//         get_field_object('main_bio'),
+//         get_field_object('notable_representations'),
+//         get_field_object('leadership')
+//     ];
+//     $tabsHTML = '';
+//     $tabContentHTML = '';
+//     foreach($fields as $field) {
+//         if ($field && $field['value'] !== false) {
+//             $label = $field['label'];
+//             $slug = $field['name'];
+//             $tabsHTML .= '<button class="tablinks">' . $label . '</button>';
+//             if ( $slug === 'notable_representations' ) {
+//                 $layout = $slug === 'notable_representations';
+//                 array_map('create_notables_layout', $field['value']);
+//                 $layout = implode(' ', $layout);
+// 				$h2Label = $label === 'Notable Representations' ? 'Notable Representations' : $label;
+//                $tabContentHTML .= '
+//                     <section id="' . $label . '" class="tabcontent">
+//                         <h2>' . $h2Label . '</h2>
+//                         '.$field['value'].'
+//                     </section>
+//                 ';
+//             } else if ($slug === 'leadership' ){
+// 				$layout = $slug === 'leadership';
+// 				array_map('create_leadership_layout', $field['value']);
+// 				$layout = implode(' ', $layout);
+// 				$h2Label = $label === 'Leadership' ? 'Leadership' : $label;			
+//                 $tabContentHTML .= '
+//                     <section id="' . $label . '" class="tabcontent">
+//                         <h2>' . $h2Label . '</h2>
+//                         '.$field['value'].'
+//                     </section>
+//                 ';
+// 			} else {
+// 				$h2Label = $label === 'Main Bio' ? 'Biography' : $label;			
+//                 $tabContentHTML .= '
+//                     <section id="' . $label . '" class="tabcontent">
+//                         <h2>' . $h2Label . '</h2>
+//                         '.$field['value'].'
+//                     </section>
+//                 ';
+//             }
+//         }
+//     }
+	
+	function render_attorney_tabs() {
     $fields = [
         get_field_object('main_bio'),
         get_field_object('notable_representations'),
@@ -193,11 +484,15 @@ function render_attorney_tabs() {
                     ? array_map('create_notables_layout', $field['value'])
                     : array_map('create_leadership_layout', $field['value']);
                 $layout = implode(' ', $layout);
-                $tabContentHTML .= '<section id="' . $label . '" class="tabcontent">' . $layout . '</section>';
+                $tabContentHTML .= '<section id="' . $label . '" class="tabcontent">
+					<h2 class="main-title">' . $label . '</h2>
+					' . $layout . '
+				</section>';
             } else {
+				$h2Label = $label === 'Main Bio' ? 'Biography' : $label;			
                 $tabContentHTML .= '
                     <section id="' . $label . '" class="tabcontent">
-                        <h2>' . $label . '</h2>
+                        <h2>' . $h2Label . '</h2>
                         '.$field['value'].'
                     </section>
                 ';
@@ -213,10 +508,10 @@ function render_attorney_tabs() {
 function create_notables_layout($section) {
     $html = '';
     if ($section['acf_fc_layout'] === 'section_heading') {
-        $html .= '<h3>' . $section['section_heading'] . '</h3>';
+		$html .= '<h3 class="secondary-title">' . $section['section_heading'] . '</h3>';
     }
     if ($section['acf_fc_layout'] === 'representation_item') {
-        $html .= '<p class="repItem"><strong>' . $section['title'] . ':</strong> ' . $section['description'] . '</p>';
+        $html .= '<p class="repItem"><strong>' . $section['title'] . '</strong> ' . $section['description'] . '</p>';
     }
     return $html;
 }
@@ -224,7 +519,7 @@ function create_notables_layout($section) {
 function create_leadership_layout($section) {
     $html = '';
     if ($section['acf_fc_layout'] === 'section_title') {
-        $html .= '<h3>' . $section['title'] . '</h3>';
+        $html .= '<h3 class="secondary-title">' . $section['title'] . '</h3>';
     }
     if ($section['acf_fc_layout'] === 'leadership_item') {
         $html .= '<p class="repItem">' . $section['leadership_item_text'] . '</p>';
@@ -259,7 +554,7 @@ function exclude_post_categories($excl='', $spacer=' ') {
     }
 }
  
-function dk_home_flyouts_func( $atts ){
+function dk_home_flyouts_func( $atts ) {
     $html = '';
     $html .= '
     <div class="sectors group">
@@ -777,7 +1072,298 @@ add_shortcode('corona-sidebar', 'coronaSidebar');
 
 
 
+
+
+// shows different categories in the sidebar
 function cats_sidebar() {
+    $html = '';
+    if ( is_tax('event_categories') ) {
+      $html .= '<h3>Practice Areas</h3>';
+      $html .= '<ul class="publicationCatList">';
+      //turn the category title into a slug corresponding with a practice area post slug, and display the link to that practice area post
+      $current_category = single_cat_title("", false);
+      $current_category_lower = strtolower($current_category);
+      $theSlug = str_replace(' ', '-', $current_category_lower);
+      $mypost = get_page_by_path( $theSlug, '', 'practice_areas');
+      $myLink = get_post_permalink( $mypost->ID );
+
+      $html .= '<li><a href="'.$myLink.'">'.$current_category.'</a></li>';
+      $html .= '</ul>';
+      $html .= '<h3>Industries</h3>';
+      $html .= '<ul class="publicationCatList">';
+      $listIndustries = [192,198,200,209,202,212,213,216,217]; //array to store industries posts
+      foreach( $listIndustries as $postID):
+          $p = get_post($postID);
+          $html .= '<li><a href="' . site_url() . '/' . $p->post_type . '/' . $p->post_name . '">'. $p->post_title .'</a></li>';
+      endforeach;
+      wp_reset_postdata();
+      $html .= '</ul>';
+      return $html;
+    }
+    // business
+    else if( is_category(14) ) {
+       $html .= '<h3>Practice Areas</h3>';
+       $html .= '<ul class="publicationCatList">';
+       $businessPracticeAreas = get_field('define_practice_areas_for_business_news_page','option');
+       foreach ($businessPracticeAreas as $post) {
+          //get the post title and convert spaces to hypens to use in URL GET parameter
+          $realTitle = $post->post_title;
+          $realTitle = str_replace("-", "_", $realTitle);
+          $realTitle = str_replace(" ", "-", $realTitle);
+          $html .= '<li><a href="' . site_url() . '/news/?topic='. $realTitle . '">' . $post->post_title . '</a></li>';
+        }
+        $html .= '</ul>';
+        $html .= '<h3>Industries</h3>';
+        $html .= '<ul class="publicationCatList">';
+        $businessIndustries = get_field('define_industries_for_business_news_page','option');
+        foreach ($businessIndustries as $post) {
+          //get the post title and convert spaces to hypens to use in URL GET parameter
+          $realTitle = get_the_title();
+          $realTitle = str_replace("-", "_", $realTitle);
+          $realTitle = str_replace(" ", "-", $realTitle);
+          $html .= '<li><a href="' . site_url() . '/news/?topic=' . $realTitle. '">'. $post->post_title .'</a></li>';
+        }
+        $html .= '</ul>';
+        return $html;
+    } //end is category 14, business
+
+    // individual
+    else if( is_category(15) ) {
+        $html .= '<h3>Practice Areas</h3>';
+        $html .= '<ul class="publicationCatList">';
+        $individualPracticeAreas = get_field('define_practice_areas_for_individual_news_page','option');
+        foreach ($individualPracticeAreas as $post) {
+            //get the post title and convert spaces to hypens to use in URL GET parameter
+            $realTitle = get_the_title();
+            $realTitle = str_replace("-", "_", $realTitle);
+            $realTitle = str_replace(" ", "-", $realTitle);
+            $html .= '<li><a href="' . site_url() . '/news/?topic=' . $realTitle. '">'. $post->post_title .'</a></li>';
+        }
+        $html .= '</ul>';
+        return $html;
+    } //end is category 15, individual
+
+    // public sector
+    else if( is_category(16) ) {
+        $html .= '<h3>Practice Areas</h3>';
+        $html .= '<ul class="publicationCatList">';
+        //wp_query wouldnt work, iterate through array of practice area post ids in category to get the post titles to show in list and generate GET parameter for news page
+        $municipalPracticeAreas = get_field('define_practice_areas_for_public_sector_news_page','option');;
+        foreach ($municipalPracticeAreas as $post) {
+            //get the post title and convert spaces to hypens to use in URL GET parameter
+            $realTitle = get_the_title();
+            $realTitle = str_replace("-", "_", $realTitle);
+            $realTitle = str_replace(" ", "-", $realTitle);
+            $html .= '<li><a href="' . site_url() . '/news/?topic=' . $realTitle. '">'. $post->post_title .'</a></li>';
+        }
+
+        $html .= '</ul>';
+        return $html;
+    } //end is category 16, public, municipal
+    
+    // in-the-news
+    else if ( is_category(8) ) {
+        $html .= '<h3>Practice Areas</h3>';
+        $html .= '<ul class="publicationCatList">';
+        $areaPosts = get_field('define_practice_areas','option');
+        if( $areaPosts ):
+            foreach( $areaPosts as $post):
+//                 setup_postdata($post);
+                //use the post title to create a hyperlink to the news category for this practice area
+                $postTitle = $post->post_title;
+                
+                $slugNoCommaOrDash = str_replace(array(',', '/'), "", $postTitle); 
+                $postTitleNameLowercase = strtolower($slugNoCommaOrDash);
+                $doubleDash = str_replace(" ", "-",  $postTitleNameLowercase);
+                $theSlug = str_replace("--", "-",  $doubleDash);
+   
+               $html .= '<li><a href="'. site_url() .'/event-category/'. $theSlug .'-news">'. $post->post_title .'</a></li>'; 
+            endforeach;
+        wp_reset_postdata();
+        $html .= '</ul>';
+    
+        $areaPosts = get_field('define_industries', 'options');
+        $html .= '<h3>Industries</h3>';
+        $html .= '<ul class="publicationCatList">';
+        if( $areaPosts ):
+            foreach( $areaPosts as $post):
+                setup_postdata($post);
+            
+                $postTitle = $post->post_title;
+
+                $slugNoCommaOrDash = str_replace(array(',', '/'), "", $postTitle); 
+                 $postTitleNameLowercase = strtolower($slugNoCommaOrDash);
+                 $doubleDash = str_replace(" ", "-",  $postTitleNameLowercase);
+                 $theSlug = str_replace("--", "-",  $doubleDash);
+    
+    
+                 $html .= '<li><a href="'. site_url() .'/event-category/' . $theSlug. '-news">'. $post->post_title .'</a></li>';
+            endforeach;
+        wp_reset_postdata();
+        $html .= '</ul>';
+        endif;
+    
+        endif;
+        return $html;
+    } // end cat 8
+    
+    // news & events
+    else if( is_category(9) ) {
+        $html .= '<h3>Practice Areas</h3>';
+        $html .= '<ul class="publicationCatList">';
+
+        $areaPosts = get_field('define_practice_areas','option');
+
+        if( $areaPosts ):
+            foreach( $areaPosts as $post):
+                //use the post title to create a hyperlink to the news category for this $postTitle = $post->post_title;
+                
+                $postTitle = $post->post_title;
+                
+                $slugNoCommaOrDash = str_replace(array(',', '/'), "", $postTitle); 
+                $postTitleNameLowercase = strtolower($slugNoCommaOrDash);
+                $doubleDash = str_replace(" ", "-",  $postTitleNameLowercase);
+                $theSlug = str_replace("--", "-",  $doubleDash);
+   
+               $html .= '<li><a href="'. site_url() .'/event-category/'. $theSlug .'-news">'. $post->post_title .'</a></li>'; 
+            endforeach;
+        wp_reset_postdata();
+        $html .= '</ul>';
+        endif;
+        $html .= '<h3>Industries</h3>';
+        $html .= '<ul class="publicationCatList">';
+        $areaPosts = get_field('define_industries', 'options');
+        if( $areaPosts ):
+            foreach( $areaPosts as $post):
+                setup_postdata($post);
+            $postTitle = $post->post_title; 
+
+            $slugNoCommaOrDash = str_replace(array(',', '/'), "", $postTitle); 
+             $postTitleNameLowercase = strtolower($slugNoCommaOrDash);
+             $doubleDash = str_replace(" ", "-",  $postTitleNameLowercase);
+             $theSlug = str_replace("--", "-",  $doubleDash);
+
+
+           $html .= '<li><a href="'. site_url() .'/event-category/' . $theSlug. '-news">'. $post->post_title .'</a></li>';
+            endforeach;
+        wp_reset_postdata();
+        $html .= '</ul>';
+        endif;
+        return $html;
+    } //end is category 9, news & events
+	
+	 else if( is_category(10) ) {
+        $html .= '<h3>Practice Areas</h3>';
+        $html .= '<ul class="publicationCatList">';
+
+        $areaPosts = get_field('define_practice_areas','option');
+
+        if( $areaPosts ):
+            foreach( $areaPosts as $post):
+                //use the post title to create a hyperlink to the news category for this practice area
+                $postTitle = $post->post_title;
+                
+                $slugNoCommaOrDash = str_replace(array(',', '/'), "", $postTitle); 
+                $postTitleNameLowercase = strtolower($slugNoCommaOrDash);
+                $doubleDash = str_replace(" ", "-",  $postTitleNameLowercase);
+                $theSlug = str_replace("--", "-",  $doubleDash);
+   
+               $html .= '<li><a href="'. site_url() .'/event-category/'. $theSlug .'-news">'. $post->post_title .'</a></li>'; 
+            endforeach;
+        wp_reset_postdata();
+        $html .= '</ul>';
+        endif;
+        $html .= '<h3>Industries</h3>';
+        $html .= '<ul class="publicationCatList">';
+        $areaPosts = get_field('define_industries', 'options');
+        if( $areaPosts ):
+            foreach( $areaPosts as $post):
+                setup_postdata($post);
+
+                $postTitle = $post->post_title;
+
+            $slugNoCommaOrDash = str_replace(array(',', '/'), "", $postTitle); 
+             $postTitleNameLowercase = strtolower($slugNoCommaOrDash);
+             $doubleDash = str_replace(" ", "-",  $postTitleNameLowercase);
+             $theSlug = str_replace("--", "-",  $doubleDash);
+
+
+             $html .= '<li><a href="'. site_url() .'/event-category/' . $theSlug. '-news">'. $post->post_title .'</a></li>';
+            endforeach;
+        wp_reset_postdata();
+        $html .= '</ul>';
+        endif;
+        return $html;
+    } //end is category 9, news & events
+
+	//detect publications
+	
+	if (is_post_type_archive("publications")) {
+    $industriesIds = [192, 198, 200, 202, 209, 213, 217];
+	$relatedIndustries = [];
+	$html = '<div class="cats-sidebar">';
+	$currentCat = get_queried_object();
+	$catSlug = $currentCat->post_name;
+	$args = [
+		'post_type' => 'practice_areas',
+		'category_name' => $catSlug,
+		'posts_per_page' => -1,
+		'order' => 'ASC',
+		'orderby' => 'title',
+	];
+	$the_query = new WP_Query( $args );
+	if ( $the_query->have_posts() ) {
+		$html .= '<h3>Practice Areas</h3>';
+		$html .= '<ul class="publicationCatList">';
+		while ( $the_query->have_posts() ) {
+			$the_query->the_post();
+            if ( in_array( get_the_ID(), $industriesIds) ) {
+                array_push($relatedIndustries, get_post( get_the_ID() ));
+            }
+            if ( ! in_array(get_the_ID(), [192, 198, 200, 202, 209, 213, 217])) { 
+               
+                $postTitle = get_post_field( 'post_title', get_the_ID() );
+                
+                 $slugNoCommaOrDash = str_replace(array(',', '/'), "", $postTitle); 
+                 $postTitleNameLowercase = strtolower($slugNoCommaOrDash);
+                 $doubleDash = str_replace(" ", "-",  $postTitleNameLowercase);
+                 $theSlug = str_replace("--", "-",  $doubleDash);
+    
+                $html .= '<li><a href="'. site_url() .'/publications-category/'. $theSlug .'">'. get_the_title().'</a></li>'; 
+            }
+		}
+		$html .= '</ul>';
+	}
+	wp_reset_postdata();
+
+	if( $relatedIndustries ): 
+		$html .= '<h3>Industries</h3>';
+		$html .= '<ul class="related">';
+		foreach( $relatedIndustries as $post):
+
+            $postTitle = $post->post_title;
+
+            $slugNoCommaOrDash = str_replace(array(',', '/'), "", $postTitle); 
+             $postTitleNameLowercase = strtolower($slugNoCommaOrDash);
+             $doubleDash = str_replace(" ", "-",  $postTitleNameLowercase);
+             $theSlug = str_replace("--", "-",  $doubleDash);
+
+
+           $html .= '<li><a href="'. site_url() .'/publications-category/'. $theSlug .'">'. $post->post_title.'</a></li>';
+
+            
+		endforeach; 
+		$html .= '</ul>';
+	endif;
+
+   $html .= '</div>';
+   return $html; 
+	}
+
+
+    //end pubs
+	
+    // default
 	$industriesIds = [192, 198, 200, 202, 209, 213, 217];
 	$relatedIndustries = [];
 	$html = '<div class="cats-sidebar">';
@@ -800,7 +1386,7 @@ function cats_sidebar() {
 				array_push($relatedIndustries, get_post( get_the_ID() ));
 			}
 			$postSlug = get_post_field( 'post_name', get_the_ID() );					
-			$html .= '<li><a href="'. site_url() .'/event-category/'. $postSlug .'-news">'. get_the_title().'</a></li>';
+			$html .= '<li><a href="'. site_url() .'/publications-category/'. $postSlug .'">'. get_the_title().'</a></li>';
 		}
 		$html .= '</ul>';
 	}
@@ -824,3 +1410,197 @@ add_shortcode('cats-sidebar', 'cats_sidebar');
 
 
 
+
+// Start - shortcode for leadership page acf fields
+function dk_leadership_shortcode_func ($atts) {
+	$html= '';
+    $html .= '<div class="profileCenter">';
+    
+    $html .= '<div class="leader-grid">';
+        $html .= '<div class="leader">';
+        $html .='<h2 class="heading">Firm President</h2>';
+        $post_object = get_field('firm_president');
+        if( $post_object ):
+        // override $post
+            $post = $post_object;
+            setup_postdata( $post ); 
+            $post->ACF=get_fields($post->ID);
+        
+            $html .='<p><a href="' . get_site_url() . '/attorney/' .  $post->post_name . '"> ' . $post->ACF['attorney_name'] . ' </a></p>';
+            $html .='<p><a href="mailto:' . $post->ACF['email_address'] . '">' . $post->ACF['email_address']  .'</a></p>';
+            $html .='<p>T: ' .  $post->ACF['phone'] . '</p>';
+
+            wp_reset_postdata();
+            endif; 
+        $html .= '</div>'; 
+
+        // <!-- leader -->
+        $html .= '<div class="leader">';
+        $html .= '<h2 class="heading">Executive Director</h2>';
+
+        $post_object = get_field('executive_director');
+        if( $post_object ):
+        // override $post
+            $post = $post_object;
+            setup_postdata( $post );
+            $post->ACF=get_fields($post->ID);
+
+            $html .='<p><a href="' . get_site_url() . '/attorney/' .  $post->post_name . '"> ' . $post->ACF['attorney_name'] . ' </a></p>';
+            $html .='<p><a href="mailto:' . $post->ACF['email_address'] . '">' . $post->ACF['email_address']  .'</a></p>';
+            $html .='<p>T: ' .  $post->ACF['phone'] . '</p>';
+
+            wp_reset_postdata(); 
+            endif;
+        $html .='</div>'; 
+    $html .='</div>'; //leader-grid
+
+
+    $post_objects = get_field('members_of_the_board');
+
+    if( $post_objects ):
+        $html .='<h2 class="heading">Members of the Board</h2>';
+        $html .= '<div class="leader-grid">';
+        foreach( $post_objects as $post):
+            setup_postdata($post);
+            $post->ACF=get_fields($post->ID);
+            $html .= '<div class="leader">';
+            $html .='<p><a href="' . get_site_url() . '/attorney/' .  $post->post_name . '"> ' . $post->ACF['attorney_name'] . ' </a></p>';
+            $html .='<p><a href="mailto:' . $post->ACF['email_address'] . '">' . $post->ACF['email_address']  .'</a></p>';
+            $html .='<p>T: ' .  $post->ACF['phone'] . '</p>';
+            $html .= '</div>';
+        endforeach;
+        wp_reset_postdata();
+        $html .= '</div>'; // leader-grid
+        endif;
+
+                        
+    // check if the repeater field has rows of data
+
+    if( have_rows('team_heads') ): 
+
+        $html .= '<h2 class="heading">Team Heads (Practice Area Leaders)</h2>';
+        $html .= '<div class="leader-grid">';        
+        // loop through the rows of data
+        while ( have_rows('team_heads') ) : the_row();
+
+        $html .= '<div class="leader">';
+        //show practice area
+        $post_object = get_sub_field('practice_area');
+        if( $post_object ):
+            // override $post
+            $post = $post_object;
+            setup_postdata( $post );
+            $html .= '<p>' . $post->post_title . '</p>';
+
+            wp_reset_postdata();
+
+        endif;
+
+        //show attorney data
+        $post_object = get_sub_field('attorney');
+        if( $post_object ):
+        // override $post
+            $post = $post_object;
+            setup_postdata( $post );
+            $post->ACF=get_fields($post->ID);
+
+            $html .='<p><a href="' . get_site_url() . '/attorney/' .  $post->post_name . '"> ' . $post->ACF['attorney_name'] . ' </a></p>';
+            $html .='<p><a href="mailto:' . $post->ACF['email_address'] . '">' . $post->ACF['email_address']  .'</a></p>';
+            $html .='<p>T: ' .  $post->ACF['phone'] . '</p>';
+
+            wp_reset_postdata();
+            endif;
+            $html .= '</div>';
+
+            endwhile;
+            else :
+            // no rows found
+    endif;
+
+
+    $html .= '</div>';// leader-grid
+
+    // check if the repeater field has rows of data
+    if( have_rows('individual_practice_chairs') ): 
+        $html .= '<h2 class="heading">Individual Practice Chairs</h2>';
+        $html .= '<div class="leader-grid">';     
+        // loop through the rows of data
+        while ( have_rows('individual_practice_chairs') ) : the_row();
+
+            $html .= '<div class="leader">';
+            //show practice area
+            $post_object = get_sub_field('practice_area');
+            if( $post_object ):
+                // override $post
+                $post = $post_object;
+                setup_postdata( $post );
+
+                $html .= '<p>' . $post->post_title . '</p>';
+
+                wp_reset_postdata();
+            endif;
+
+            //show attorney data
+            $post_object = get_sub_field('attorney');
+            if( $post_object ):
+            // override $post
+                $post = $post_object;
+                setup_postdata( $post );
+                $post->ACF=get_fields($post->ID);
+
+                $html .='<p><a href="' . get_site_url() . '/attorney/' .  $post->post_name . '"> ' . $post->ACF['attorney_name'] . ' </a></p>';
+                $html .='<p><a href="mailto:' . $post->ACF['email_address'] . '">' . $post->ACF['email_address']  .'</a></p>';
+                $html .='<p>T: ' .  $post->ACF['phone'] . '</p>';
+
+                wp_reset_postdata();
+                endif;
+            $html .= '</div>';
+
+            endwhile;
+        else :
+        // no rows found
+        endif;
+
+    $html .='</div>'; // leader-grid
+
+    // check if the repeater field has rows of data
+    if( have_rows('administrative_directors') ): 
+        $html .= '<h2 class="heading">Administrative Directors</h2>';
+        $html .= '<div class="leader-grid">';     
+        // loop through the rows of data
+        while ( have_rows('administrative_directors') ) : the_row();
+			$html .= '<div class="leader">';
+			//show title 
+			$html .='<p>' .  get_sub_field('title') . '</p>';
+			 //show attorney data
+			$post_object = get_sub_field('attorney');
+			if( $post_object ):
+				// override $post
+				$post = $post_object;
+				setup_postdata( $post );
+				$post->ACF=get_fields($post->ID);
+				$html .='<p><a href="' . get_site_url() . '/attorney/' .  $post->post_name . '"> ' . $post->ACF['attorney_name'] . ' </a></p>';
+        		$html .='<p><a href="mailto:' . $post->ACF['email_address'] . '">' . $post->ACF['email_address']  .'</a></p>';
+        		$html .='<p>T: ' .  $post->ACF['phone'] . '</p>';
+				wp_reset_postdata();
+			endif;
+			$html .= '</div>';
+
+   		endwhile;
+    else :
+    // no rows found
+    endif;
+    $html .= '</div>';
+//     endwhile; 
+	
+	// End of the loop. 
+
+    $html .='</div>';
+	return $html;
+// <!-- profileCenter -->      
+}
+add_shortcode( 'leadershipFields', 'dk_leadership_shortcode_func' );
+
+
+
+// End - shortcode for leadership page

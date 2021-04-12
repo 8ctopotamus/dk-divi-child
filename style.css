@@ -9,6 +9,59 @@ Developed by Andrew Palmer for Elegant Marketplace www.elegantmarketplace.com Fr
  Wordpress Version: 4.9.6
 */ 
 
+/* attorney vid slider - DIVI MOD */
+.att-vid-slider ul {
+	margin: 10px 0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: 0;
+}
+.att-vid-slider li {
+	border-radius: 50px;;
+	list-style-type: none;
+	height: 8px;
+	width: 8px;
+	background: rgba(0,0,0,.5);
+	cursor: pointer;
+	margin: 2px;
+}
+.att-vid-slider li:first-child {
+	background: black;
+}
+
+
+
+/* leadership page - .page-id-41 */
+.leader-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr 1fr;
+	grid-gap: 30px;
+	margin-bottom: 45px;
+}
+
+.leader-grid a {
+    color: darkblue;
+    text-decoration: underline;
+}
+
+.leader-grid p {
+	padding-bottom: 0px;
+}
+
+
+.leader h2,
+.page-id-41 .heading{
+	color: #829317;
+	font-size: 18px;
+	margin-bottom: 10px;
+}
+
+
+.et_pb_post_content  ul {
+	margin-left: 15px;
+}
+
 .clearfix::after {
   content: "";
   clear: both;
@@ -52,6 +105,10 @@ body {
     padding-right: 0px;
 }
 
+.et_mobile_menu .menu-item-has-children>a {
+    font-weight: 500 !important;
+}
+
 .et_pb_fullwidth_menu--without-logo .et_pb_menu__menu>nav>ul>li>a {
 	padding-bottom: 19px;
 }
@@ -80,8 +137,24 @@ input#gform_submit_button_1 {
     text-decoration: none;
 }
 
+/* Bullet Fixes */
 
+.dkdm_practice_area_chair_and_news li {
+    margin-bottom: 12px;
+    list-style-type: none !important;
+}
 
+.cats-sidebar li {
+    list-style-type: none !important;
+}
+
+#Main Bio ul {
+    margin-left: 20px;
+}
+
+single-attorney ul{
+   margin-left: 20px !important;
+}
 /* Main */
 /* .entry-content ul {
     list-style-image: url(https://www.dkattorneys.com/wp-content/uploads/2018/02/bullet.png);
@@ -90,13 +163,32 @@ input#gform_submit_button_1 {
 
 .publicationCatList {
 	list-style-image: none;
+	list-style-type: none !important;
+}
+
+
+
+.et-db #et-boc .et-l .cats-sidebar .publicationCatList li a, .et-db #et-boc .et-l .cats-sidebar .related li a {
+    color: #7d7d7d;
 }
 
 .dk-random-attorney-profile h2 {
   color: #829317;
 }
 
+.dkdm_attorney_posts_bar li {
+	line-height: 20px !important;
+}
 
+/* Practice Chair Changes*/
+
+.chair-member h2 {
+    font-size: 16px !important;
+}
+
+.dkdm_practice_area_chair_and_news h3 {
+	font-size: 18px !important;
+}
 
 /* Slick.js Slider*/
 
@@ -125,6 +217,7 @@ input#gform_submit_button_1 {
     float: left;
     border: none;
     outline: none;
+	color: #666 !important;
     cursor: pointer;
     padding: 8px 16px;
     transition: 0.3s;
@@ -136,7 +229,7 @@ input#gform_submit_button_1 {
 }
 .tab button:hover,
 .tab button.active {
-    color: #829317;
+    color: #829317 !important;
 }
 
 .tabcontent {
@@ -145,24 +238,27 @@ input#gform_submit_button_1 {
 	border-top: none;
 }
 
-.tabcontent > h2 {
-	margin-top: 0px;
-	padding-top: 0px;
+.tabcontent > h2:first-of-type {
 	color: #829317;
 	text-transform: uppercase !important;
-	margin-bottom: .5em;
 }
 
 .dk-tabs section:first-of-type {
     display: block;
 }
+.et-l--body ul,
+.dk-tabs section:first-of-type ul {
+    list-style-type: disc !important;
+}
 .repItem {
-    background: url(https://www.dkattorneys.com/wp-content/uploads/2018/02/bullet.png) no-repeat 0px 2px;
+    background: url(https://www.dkattorneys.com/wp-content/uploads/2018/02/bullet.png) no-repeat 0px 5px;
     padding-left: 18px;
 }
 
 
-
+.et_pb_text_inner ul:not(.bullet) {
+    padding-left: 31px;
+}
 
 /* Homepage flyouts */
 
@@ -229,7 +325,7 @@ a.boxHeading:link, a.boxHeading:visited, .newsByPracticeArea p.newsTitle {
 	display: block;
 	background: #829317;
 	color: #FFF;
-	font: 300 .9em/1em Arial, sans-serif;
+	font: 1.4em/0em Arial, sans-serif;
 	text-decoration: none;
 	text-transform: uppercase;
 	padding: 1.2em 0px 1.2em 19%;
@@ -380,6 +476,10 @@ a.closeButton {
 ## Archive Attorney
 --------------------------------------------------------------*/
 
+post-type-archive-attorney .et_pb_section {
+	background-color: white !important;
+}
+
 .post-type-archive-attorney .et-db #et-boc .et-l .et_pb_fullwidth_menu--without-logo .et_pb_menu__menu > nav > ul {
 	padding-top: 14px 0 0 !important;
 }
@@ -397,9 +497,9 @@ a.closeButton {
     padding-right: 4% !important;
 }
 
-.post-type-archive-attorney .page-header,
-#attorney-archive-description {
+.post-type-archive-attorney .page-header, #attorney-archive-description {
     text-align: center;
+    padding-top: 40px;
 }
 
 #attorney-archive-description {
@@ -524,7 +624,39 @@ ul.practice.results li:last-child:after {
 }
 
 
+@media screen and (max-width: 1048px) {
+	
+.et_pb_social_media_follow li a.icon {
+    height: 30px !important;
+	width: 30px !important;
+}		
+	
+.et_pb_text_0_tb_header {
+    font-size: 16px !important;
+}
+	
+a.readMore {
+    font-size: 11px !important;
+}
+}
+
 @media (max-width: 767px) {
+	/* leadership page */
+	.page-id-41 .entry-title,
+	.page-id-41 h2.heading,
+	.leader-grid{		
+		text-align: center;
+	}
+	.leader-grid {
+		display: block;
+	}
+	.page-id-41 .entry-title {
+		font-size: 32px;
+	}
+	.leader {
+		margin-bottom: 15px;
+	}
+	
     .attorney-listing.headings,
     .attorney-listing article {
         display: block;
@@ -532,5 +664,53 @@ ul.practice.results li:last-child:after {
     .attorney-listing.headings {
         display: none;
     }
+	
+	footer.et-l.et-l--footer {
+    text-align: center;
+}
+	
+.et_pb_search_0_tb_body {
+    width: 90% !important;
+}
+	
 }
 
+.gs_logo_single {
+    max-height: 121px !important;
+}
+	
+.gs_logo_single img {
+    max-height: -webkit-fill-available !important;
+}
+.gs_logo_container {
+    padding: 20px !important;
+}
+
+h2.biolabel {
+    font-size: 18px !important;
+    color: #829317 !important;
+}
+
+.second-menu ul#menu-news-events-header {
+    justify-content: left !important;
+}
+/* Publications fix for header */
+
+.post-type-archive-publications .et_pb_row.clearfix {
+    max-width: 1160px !important;
+}
+
+.et-db #et-boc .et-l .et-menu .menu-item-has-children>a:first-child a {
+    padding-right: 0px !important;
+}
+
+
+/* Fixes for Publication Pages */
+
+.practice_areas-template-default .single .single-practice_areas h1.entry-title {
+    font-style: normal !important;
+}
+
+.practice_areas-template-default .single .single-practice_areas .et_pb_text_inner ul {
+ padding: 0 0 23px 3em !important;
+}

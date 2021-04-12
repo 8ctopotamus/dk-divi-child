@@ -17,6 +17,7 @@
 				<?php
 				$terms = get_terms( array(
     			'taxonomy' => 'letter',
+					'orderby' => 'title',
 				) );
     		foreach ( $terms as $term ) { ?>
 					<a href="<?php echo get_term_link($term); ?>"><?php echo $term->name; ?></a>

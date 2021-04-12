@@ -4,12 +4,21 @@
   const printBtn = document.getElementById('getsim-print-o-matic');
   const tabs = Array.from(document.querySelectorAll('.tablinks'));
   const tabContent = Array.from(document.querySelectorAll('.tabcontent'));
-  const logo = document.querySelector('body header:first-of-type img');
   const profile = document.querySelector('.dk-random-attorney-profile');
-  const attorneyIMG = profile.children[2];
   const posts = document.querySelectorAll('.dkdm_attorney_posts_bar')[1]; // NOTE: for some reason, there are 2 elements with .dkdm_attorney_posts_bar in Divi DK Mods. We are selecting the inner one here.
   const brandColor = '#829317';
 
+  const replaceDomain = src=> src.replace(/(https:\/\/)(.*?)(?=\/)/g, SITE_URL)
+  
+  // replace CDN domain with actual domain
+  let logo = document.querySelector('body header:first-of-type img');
+  logo.src = replaceDomain(logo.src)
+  logo.srcset = replaceDomain(logo.srcset)
+  const attorneyIMG = profile.children[2];
+  attorneyIMG.src = replaceDomain(attorneyIMG.src)
+
+  printBtn.href = '#'
+  
   function getBase64Image(img) {
     var canvas = document.createElement("canvas");
     canvas.width = img.width;
@@ -20,10 +29,9 @@
     return dataURL;
   }
 
-
   const ignore = el => {
     if (
-      el.innerText === 'Main Bio' || el.classList.contains('hide-from-pdf')) {
+      el.innerText.toUpperCase() === 'BIOGRAPHY' || el.classList.contains('hide-from-pdf')) {
       return false
     }
     return true
@@ -87,12 +95,12 @@
               stack: [
                 { 
                   image: 'advisor',
-                  width: 160,
+                  width: 150,
                   margin: [0 ,0 ,0, 10]
                 },
                 ...profileBody,
               ],
-              width: 160,
+              width: 150,
             },
             [
               { text: attorney_name, style: 'header' },
@@ -168,7 +176,7 @@
       pageMargins: [ 40, 40, 40, 100 ],
     };
 
-    pdfMake.createPdf(docDefinition).open();
+    pdfMake.createPdf(docDefinition).download('Attorney.pdf');
   };
 
   // change tabs
